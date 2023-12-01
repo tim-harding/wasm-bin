@@ -1,7 +1,10 @@
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    process::id,
+};
 
 use crate::{
-    modules::{Elemidx, Funcidx, Globalidx, Labelidx, Localidx, Tableidx, Typeidx},
+    modules::{Dataidx, Elemidx, Funcidx, Globalidx, Labelidx, Localidx, Tableidx, Typeidx},
     types::{Reftype, Valtype},
     values::S33,
     Grammar, Vector,
@@ -21,6 +24,19 @@ impl Grammar for Blocktype {
             Blocktype::ValueType(vt) => vt.write(w),
             Blocktype::TypeIndex(ti) => ti.write(w),
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Memarg {
+    pub align: u32,
+    pub offset: u32,
+}
+
+impl Grammar for Memarg {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        self.align.write(w)?;
+        self.offset.write(w)
     }
 }
 
@@ -62,6 +78,35 @@ pub enum Instr {
     TableSize(Tableidx),
     TableFill(Tableidx),
     // Memory
+    I32Load(Memarg),
+    I64Load(Memarg),
+    F32Load(Memarg),
+    F64Load(Memarg),
+    I32Load8S(Memarg),
+    I32Load8U(Memarg),
+    I32Load16S(Memarg),
+    I32Load16U(Memarg),
+    I64Load8S(Memarg),
+    I64Load8U(Memarg),
+    I64Load16S(Memarg),
+    I64Load16U(Memarg),
+    I64Load32S(Memarg),
+    I64Load32U(Memarg),
+    I32Store(Memarg),
+    I64Store(Memarg),
+    F32Store(Memarg),
+    F64Store(Memarg),
+    I32Store8(Memarg),
+    I32Store16(Memarg),
+    I64Store8(Memarg),
+    I64Store16(Memarg),
+    I64Store32(Memarg),
+    MemorySize,
+    MemoryGrow,
+    MemoryInit(Dataidx),
+    DataDrop(Dataidx),
+    MemoryCopy,
+    MemoryFill,
     // Numeric
     // Vector
 }
@@ -206,6 +251,123 @@ impl Grammar for Instr {
                 0xfcu8.write(w)?;
                 17u32.write(w)?;
                 table.write(w)
+            }
+
+            // Memory
+            Instr::I32Load(m) => {
+                0x28u8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Load(m) => {
+                0x29u8.write(w)?;
+                m.write(w)
+            }
+            Instr::F32Load(m) => {
+                0x2au8.write(w)?;
+                m.write(w)
+            }
+            Instr::F64Load(m) => {
+                0x2bu8.write(w)?;
+                m.write(w)
+            }
+            Instr::I32Load8S(m) => {
+                0x2cu8.write(w)?;
+                m.write(w)
+            }
+            Instr::I32Load8U(m) => {
+                0x2du8.write(w)?;
+                m.write(w)
+            }
+            Instr::I32Load16S(m) => {
+                0x2eu8.write(w)?;
+                m.write(w)
+            }
+            Instr::I32Load16U(m) => {
+                0x2fu8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Load8S(m) => {
+                0x30u8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Load8U(m) => {
+                0x31u8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Load16S(m) => {
+                0x32u8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Load16U(m) => {
+                0x33u8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Load32S(m) => {
+                0x34u8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Load32U(m) => {
+                0x35u8.write(w)?;
+                m.write(w)
+            }
+            Instr::I32Store(m) => {
+                0x36u8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Store(m) => {
+                0x37u8.write(w)?;
+                m.write(w)
+            }
+            Instr::F32Store(m) => {
+                0x38u8.write(w)?;
+                m.write(w)
+            }
+            Instr::F64Store(m) => {
+                0x39u8.write(w)?;
+                m.write(w)
+            }
+            Instr::I32Store8(m) => {
+                0x3au8.write(w)?;
+                m.write(w)
+            }
+            Instr::I32Store16(m) => {
+                0x3bu8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Store8(m) => {
+                0x3cu8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Store16(m) => {
+                0x3du8.write(w)?;
+                m.write(w)
+            }
+            Instr::I64Store32(m) => {
+                0x3eu8.write(w)?;
+                m.write(w)
+            }
+            Instr::MemorySize => w.write_all(&[0x3f, 0x00]),
+            Instr::MemoryGrow => w.write_all(&[0x40, 0x00]),
+            Instr::MemoryInit(idx) => {
+                0xfcu8.write(w)?;
+                8u32.write(w)?;
+                idx.write(w)?;
+                0x00.write(w)
+            }
+            Instr::DataDrop(idx) => {
+                0xfcu8.write(w)?;
+                9u32.write(w)?;
+                idx.write(w)
+            }
+            Instr::MemoryCopy => {
+                0xfcu8.write(w)?;
+                10u32.write(w)?;
+                w.write_all(&[0x00, 0x00])
+            }
+            Instr::MemoryFill => {
+                0xfcu8.write(w)?;
+                11u32.write(w)?;
+                0x00u8.write(w)
             }
         }
     }
