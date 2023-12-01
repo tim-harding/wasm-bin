@@ -60,23 +60,23 @@ impl Grammar for Valtype {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Resulttype<'a>(pub Vector<'a, Valtype>);
+pub struct Resulttype(pub Vector<Valtype>);
 
-impl<'a> Grammar for Resulttype<'a> {
+impl Grammar for Resulttype {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
         self.0.write(w)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Functype<'a> {
-    pub parameters: Resulttype<'a>,
-    pub results: Resulttype<'a>,
+pub struct Functype {
+    pub parameters: Resulttype,
+    pub results: Resulttype,
 }
 
-impl<'a> Grammar for Functype<'a> {
+impl Grammar for Functype {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
-        0x60.write(w)?;
+        0x60u8.write(w)?;
         self.parameters.write(w)?;
         self.results.write(w)
     }
@@ -92,11 +92,11 @@ impl Grammar for Limits {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
         match self {
             Limits::Min(min) => {
-                0x00.write(w)?;
+                0x00u8.write(w)?;
                 min.write(w)
             }
             Limits::MinMax(min, max) => {
-                0x01.write(w)?;
+                0x01u8.write(w)?;
                 min.write(w)?;
                 max.write(w)
             }

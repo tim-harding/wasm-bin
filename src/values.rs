@@ -127,10 +127,10 @@ impl Grammar for Float {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Name<'a>(pub &'a str);
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Name(String);
 
-impl<'a> Grammar for Name<'a> {
+impl Grammar for Name {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
         w.write_all(self.0.as_bytes())
     }

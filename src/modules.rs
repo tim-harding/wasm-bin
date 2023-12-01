@@ -1,26 +1,25 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Typeidx(u32);
+use crate::Grammar;
+use std::io::{self, Write};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Funcidx(u32);
+macro_rules! idx {
+    ($t:ident) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct $t(u32);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Tableidx(u32);
+        impl Grammar for $t {
+            fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+                self.0.write(w)
+            }
+        }
+    };
+}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Memidx(u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Globalidx(u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Elemidx(u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Dataidx(u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Localidx(u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Labelidx(u32);
+idx!(Typeidx);
+idx!(Funcidx);
+idx!(Tableidx);
+idx!(Memidx);
+idx!(Globalidx);
+idx!(Elemidx);
+idx!(Dataidx);
+idx!(Localidx);
+idx!(Labelidx);
