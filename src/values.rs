@@ -46,6 +46,21 @@ impl Grammar for f64 {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct S33(pub i64);
+
+impl S33 {
+    pub fn new(n: i64) -> Option<Self> {
+        (64 - n.leading_zeros() <= 33).then_some(Self(n))
+    }
+}
+
+impl Grammar for S33 {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        self.0.write(w)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Unsigned {
     U32(u32),
     U64(u64),

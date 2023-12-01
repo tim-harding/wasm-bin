@@ -50,11 +50,12 @@ pub enum Valtype {
 
 impl Grammar for Valtype {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
-        match self {
-            Valtype::Numtype(n) => n.write(w),
-            Valtype::Vectype(n) => n.write(w),
-            Valtype::Reftype(n) => n.write(w),
-        }
+        let b = match *self {
+            Valtype::Numtype(n) => n as u8,
+            Valtype::Vectype(n) => n as u8,
+            Valtype::Reftype(n) => n as u8,
+        };
+        b.write(w)
     }
 }
 
