@@ -294,20 +294,7 @@ pub enum Instr {
     //
     I8x16Shuffle([Laneidx; 16]),
     //
-    I8x16ExtractLaneS(Laneidx),
-    I8x16ExtractLaneU(Laneidx),
-    I8x16ReplaceLane(Laneidx),
-    I16x8ExtractLaneS(Laneidx),
-    I16x8ExtractLaneU(Laneidx),
-    I16x8ReplaceLane(Laneidx),
-    I32x4ExtractLane(Laneidx),
-    I32x4ReplaceLane(Laneidx),
-    I64x2ExtractLane(Laneidx),
-    I64x2ReplaceLane(Laneidx),
-    F32x4ExtractLane(Laneidx),
-    F32x4ReplaceLane(Laneidx),
-    F64x2ExtractLane(Laneidx),
-    F64x2ReplaceLane(Laneidx),
+    VectorLaneIndex(VectorLaneIndex, Laneidx),
     VectorNoImmediate(VectorNoImmediate),
 }
 
@@ -884,79 +871,36 @@ impl Grammar for Instr {
                 13u32.write(w)?;
                 l.iter().map(|l| l.write(w)).collect()
             }
-            Instr::I8x16ExtractLaneS(l) => {
+            Instr::VectorLaneIndex(opcode, lane) => {
                 0xfdu8.write(w)?;
-                21u32.write(w)?;
-                l.write(w)
+                (*opcode as u32).write(w)?;
+                lane.write(w)
             }
-            Instr::I8x16ExtractLaneU(l) => {
+            Instr::VectorNoImmediate(opcode) => {
                 0xfdu8.write(w)?;
-                22u32.write(w)?;
-                l.write(w)
+                (*opcode as u32).write(w)
             }
-            Instr::I8x16ReplaceLane(l) => {
-                0xfdu8.write(w)?;
-                23u32.write(w)?;
-                l.write(w)
-            }
-            Instr::I16x8ExtractLaneS(l) => {
-                0xfdu8.write(w)?;
-                24u32.write(w)?;
-                l.write(w)
-            }
-            Instr::I16x8ExtractLaneU(l) => {
-                0xfdu8.write(w)?;
-                25u32.write(w)?;
-                l.write(w)
-            }
-            Instr::I16x8ReplaceLane(l) => {
-                0xfdu8.write(w)?;
-                26u32.write(w)?;
-                l.write(w)
-            }
-            Instr::I32x4ExtractLane(l) => {
-                0xfdu8.write(w)?;
-                27u32.write(w)?;
-                l.write(w)
-            }
-            Instr::I32x4ReplaceLane(l) => {
-                0xfdu8.write(w)?;
-                28u32.write(w)?;
-                l.write(w)
-            }
-            Instr::I64x2ExtractLane(l) => {
-                0xfdu8.write(w)?;
-                29u32.write(w)?;
-                l.write(w)
-            }
-            Instr::I64x2ReplaceLane(l) => {
-                0xfdu8.write(w)?;
-                30u32.write(w)?;
-                l.write(w)
-            }
-            Instr::F32x4ExtractLane(l) => {
-                0xfdu8.write(w)?;
-                31u32.write(w)?;
-                l.write(w)
-            }
-            Instr::F32x4ReplaceLane(l) => {
-                0xfdu8.write(w)?;
-                32u32.write(w)?;
-                l.write(w)
-            }
-            Instr::F64x2ExtractLane(l) => {
-                0xfdu8.write(w)?;
-                33u32.write(w)?;
-                l.write(w)
-            }
-            Instr::F64x2ReplaceLane(l) => {
-                0xfdu8.write(w)?;
-                34u32.write(w)?;
-                l.write(w)
-            }
-            Instr::VectorNoImmediate(i) => i.write(w),
         }
     }
+}
+
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum VectorLaneIndex {
+    I8x16ExtractLaneS = 21,
+    I8x16ExtractLaneU,
+    I8x16ReplaceLane,
+    I16x8ExtractLaneS,
+    I16x8ExtractLaneU,
+    I16x8ReplaceLane,
+    I32x4ExtractLane,
+    I32x4ReplaceLane,
+    I64x2ExtractLane,
+    I64x2ReplaceLane,
+    F32x4ExtractLane,
+    F32x4ReplaceLane,
+    F64x2ExtractLane,
+    F64x2ReplaceLane,
 }
 
 #[repr(u32)]
@@ -1177,11 +1121,4 @@ pub enum VectorNoImmediate {
     F64x2ConvertLowI32x4U,
     F32x4DemoteF64x2Zero = 94,
     F64x2PromoteLowF32x4,
-}
-
-impl Grammar for VectorNoImmediate {
-    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
-        0xfdu8.write(w)?;
-        (*self as u32).write(w)
-    }
 }
