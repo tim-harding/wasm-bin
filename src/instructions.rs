@@ -58,6 +58,21 @@ impl Grammar for Expr {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct S33(pub i64);
+
+impl S33 {
+    pub fn new(n: i64) -> Option<Self> {
+        (64 - n.leading_zeros() <= 33 && n >= 0).then_some(Self(n))
+    }
+}
+
+impl Grammar for S33 {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        self.0.write(w)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Instr {
     Opcode(Opcode),
