@@ -244,6 +244,23 @@ impl Grammar for Code {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub enum Data {
+    ActiveAtZero(Expr, Vector<u8>),
+    Passive(Vector<u8>),
+    ActiveAtIndex(Memidx, Expr, Vector<u8>),
+}
+
+impl Grammar for Data {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        match self {
+            Data::ActiveAtZero(e, b) => write_all!(w, 0u32, e, b),
+            Data::Passive(b) => write_all!(w, 1u32, b),
+            Data::ActiveAtIndex(x, e, b) => write_all!(w, 2u32, x, e, b),
+        }
+    }
+}
+
 section!(Customsec, 0, Custom);
 section!(Typesec, 1, Vector<Functype>);
 section!(Importsec, 2, Vector<Import>);
@@ -255,3 +272,5 @@ section!(Exportsec, 7, Vector<Export>);
 section!(Startsec, 8, Start);
 section!(Elemsec, 9, Vector<Elem>);
 section!(Codesec, 10, Vector<Code>);
+section!(Datasec, 11, Vector<Data>);
+section!(Datacountsec, 12, u32);
