@@ -1,6 +1,6 @@
 use crate::{
     instructions::Expr,
-    types::{Functype, Globaltype, Memtype, Reftype, Tabletype},
+    types::{Functype, Globaltype, Memtype, Reftype, Tabletype, Valtype},
     values::Name,
     write_all, Grammar, Vector,
 };
@@ -208,6 +208,42 @@ impl Grammar for Elem {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Locals {
+    pub n: u32,
+    pub t: Valtype,
+}
+
+impl Grammar for Locals {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        write_all!(w, self.n, self.t)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Func {
+    pub t: Vector<Locals>,
+    pub e: Expr,
+}
+
+impl Grammar for Func {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        write_all!(w, self.t, self.e)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Code(pub Func);
+
+impl Grammar for Code {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        let mut buf = vec![];
+        self.0.write(&mut buf)?;
+        (buf.len() as u32).write(w)?;
+        self.0.write(w)
+    }
+}
+
 section!(Customsec, 0, Custom);
 section!(Typesec, 1, Vector<Functype>);
 section!(Importsec, 2, Vector<Import>);
@@ -218,3 +254,4 @@ section!(Globalsec, 6, Vector<Global>);
 section!(Exportsec, 7, Vector<Export>);
 section!(Startsec, 8, Start);
 section!(Elemsec, 9, Vector<Elem>);
+section!(Codesec, 10, Vector<Code>);
