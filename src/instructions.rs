@@ -3,7 +3,6 @@ use std::io::{self, Write};
 use crate::{
     modules::{Dataidx, Elemidx, Funcidx, Globalidx, Labelidx, Localidx, Tableidx, Typeidx},
     types::{Reftype, Valtype},
-    values::S33,
     write_all, Grammar, Vector,
 };
 

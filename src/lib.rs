@@ -19,7 +19,6 @@ macro_rules! write_all {
     };
 }
 
-// https://webassembly.github.io/spec/core/binary/conventions.html#vectors
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Vector<T>(pub Box<[T]>);
 
