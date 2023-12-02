@@ -46,6 +46,7 @@ impl Grammar for Laneidx {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Expr(pub Box<[Instr]>);
 
 impl Grammar for Expr {
