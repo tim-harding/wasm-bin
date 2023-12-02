@@ -60,9 +60,8 @@ impl Grammar for Expr {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Instr {
+    Opcode(Opcode),
     // Control
-    Unreachable,
-    Nop,
     Block(Blocktype, Box<[Instr]>),
     Loop(Blocktype, Box<[Instr]>),
     If(Blocktype, Box<[Instr]>),
@@ -70,15 +69,12 @@ pub enum Instr {
     Br(Labelidx),
     BrIf(Labelidx),
     BrTable(Vector<Labelidx>, Labelidx),
-    Return,
     Call(Funcidx),
     CallIndirect(Typeidx, Tableidx),
     // Reference
     RefNull(Reftype),
-    RefIsNull,
     RefFunc(Funcidx),
     // Parametric
-    Drop,
     Select(Option<Vector<Valtype>>),
     // Variable
     LocalGet(Localidx),
@@ -108,7 +104,6 @@ pub enum Instr {
     I64Const(i64),
     F32Const(f32),
     F64Const(f64),
-    Numeric(Numeric),
     TruncSat(TruncSat),
 
     // Vector
@@ -123,9 +118,8 @@ pub enum Instr {
 impl Grammar for Instr {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
         match self {
+            Instr::Opcode(op) => op.write(w),
             // Control
-            Instr::Unreachable => 0x00u8.write(w),
-            Instr::Nop => 0x01u8.write(w),
             Instr::Block(bt, r#in) => write_all!(w, 0x02u8, bt, r#in, 0x0bu8),
             Instr::Loop(bt, r#in) => write_all!(w, 0x03u8, bt, r#in, 0x0bu8),
             Instr::If(bt, r#in) => write_all!(w, 0x04u8, bt, r#in, 0x0bu8),
@@ -133,17 +127,14 @@ impl Grammar for Instr {
             Instr::Br(l) => write_all!(w, 0x0cu8, l),
             Instr::BrIf(l) => write_all!(w, 0x0du8, l),
             Instr::BrTable(l, default) => write_all!(w, 0x0eu8, l, default),
-            Instr::Return => 0x0fu8.write(w),
             Instr::Call(x) => write_all!(w, 0x10u8, x),
             Instr::CallIndirect(y, x) => write_all!(w, 0x11u8, y, x),
 
             // Reference
             Instr::RefNull(t) => write_all!(w, 0xd0u8, t),
-            Instr::RefIsNull => 0xd1u8.write(w),
             Instr::RefFunc(x) => write_all!(w, 0xd2u8, x),
 
             // Parametric
-            Instr::Drop => 0x1au8.write(w),
             Instr::Select(t) => {
                 if let Some(t) = t {
                     write_all!(w, 0x1cu8, t)
@@ -183,7 +174,6 @@ impl Grammar for Instr {
             Instr::I64Const(n) => write_all!(w, 0x42u8, n),
             Instr::F32Const(n) => write_all!(w, 0x43u8, n),
             Instr::F64Const(n) => write_all!(w, 0x44u8, n),
-            Instr::Numeric(op) => op.write(w),
             Instr::TruncSat(op) => write_all!(w, 0xfcu8, op),
 
             // Vector
@@ -227,13 +217,18 @@ pub enum MemoryMemarg {
 
 impl Grammar for MemoryMemarg {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
-        todo!()
+        (*self as u8).write(w)
     }
 }
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Numeric {
+pub enum Opcode {
+    Unreachable = 0x00,
+    Nop = 0x01u8,
+    Return = 0x0f,
+    RefIsNull = 0xd1,
+    Drop = 0x1a,
     I32Eqz = 0x45,
     I32Eq,
     I32Ne,
@@ -364,7 +359,7 @@ pub enum Numeric {
     I64Extend32S,
 }
 
-impl Grammar for Numeric {
+impl Grammar for Opcode {
     fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
         (*self as u8).write(w)
     }
