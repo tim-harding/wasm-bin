@@ -258,18 +258,10 @@ pub enum Instr {
     I64Extend8S,
     I64Extend16S,
     I64Extend32S,
-    I32TruncSatF32S,
-    I32TruncSatF32U,
-    I32TruncSatF64S,
-    I32TruncSatF64U,
-    I64TruncSatF32S,
-    I64TruncSatF32U,
-    I64TruncSatF64S,
-    I64TruncSatF64U,
+    TruncSat(TruncSat),
+
     // Vector
-    //
     V128Const([u8; 16]),
-    //
     I8x16Shuffle([Laneidx; 16]),
     VectorMemarg(VectorMemarg, Memarg),
     VectorMemargLaneidx(VectorMemargLaneidx, Memarg, Laneidx),
@@ -688,37 +680,9 @@ impl Grammar for Instr {
             Instr::I64Extend8S => 0xc2u8.write(w),
             Instr::I64Extend16S => 0xc3u8.write(w),
             Instr::I64Extend32S => 0xc4u8.write(w),
-            Instr::I32TruncSatF32S => {
+            Instr::TruncSat(opcode) => {
                 0xfcu8.write(w)?;
-                0u32.write(w)
-            }
-            Instr::I32TruncSatF32U => {
-                0xfcu8.write(w)?;
-                1u32.write(w)
-            }
-            Instr::I32TruncSatF64S => {
-                0xfcu8.write(w)?;
-                2u32.write(w)
-            }
-            Instr::I32TruncSatF64U => {
-                0xfcu8.write(w)?;
-                3u32.write(w)
-            }
-            Instr::I64TruncSatF32S => {
-                0xfcu8.write(w)?;
-                4u32.write(w)
-            }
-            Instr::I64TruncSatF32U => {
-                0xfcu8.write(w)?;
-                5u32.write(w)
-            }
-            Instr::I64TruncSatF64S => {
-                0xfcu8.write(w)?;
-                6u32.write(w)
-            }
-            Instr::I64TruncSatF64U => {
-                0xfcu8.write(w)?;
-                7u32.write(w)
+                (*opcode as u32).write(w)
             }
 
             // Vector
@@ -754,6 +718,19 @@ impl Grammar for Instr {
             }
         }
     }
+}
+
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum TruncSat {
+    I32TruncSatF32S = 0,
+    I32TruncSatF32U,
+    I32TruncSatF64S,
+    I32TruncSatF64U,
+    I64TruncSatF32S,
+    I64TruncSatF32U,
+    I64TruncSatF64S,
+    I64TruncSatF64U,
 }
 
 #[repr(u32)]
