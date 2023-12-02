@@ -274,3 +274,82 @@ section!(Elemsec, 9, Vector<Elem>);
 section!(Codesec, 10, Vector<Code>);
 section!(Datasec, 11, Vector<Data>);
 section!(Datacountsec, 12, u32);
+
+pub struct Magic;
+
+impl Grammar for Magic {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        [0x00u8, 0x61, 0x73, 0x6d].write(w)
+    }
+}
+
+pub struct Version;
+
+impl Grammar for Version {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        [0x01u8, 0x00, 0x00, 0x00].write(w)
+    }
+}
+
+pub struct Module {
+    pub custom0: Box<[Customsec]>,
+    pub typesec: Option<Typesec>,
+    pub custom1: Box<[Customsec]>,
+    pub importsec: Option<Importsec>,
+    pub custom2: Box<[Customsec]>,
+    pub funcsec: Option<Funcsec>,
+    pub custom3: Box<[Customsec]>,
+    pub tablesec: Option<Tablesec>,
+    pub custom4: Box<[Customsec]>,
+    pub memsec: Option<Memsec>,
+    pub custom5: Box<[Customsec]>,
+    pub globalsec: Option<Globalsec>,
+    pub custom6: Box<[Customsec]>,
+    pub exportsec: Option<Exportsec>,
+    pub custom7: Box<[Customsec]>,
+    pub startsec: Option<Startsec>,
+    pub custom8: Box<[Customsec]>,
+    pub elemsec: Option<Elemsec>,
+    pub custom9: Box<[Customsec]>,
+    pub codesec: Option<Codesec>,
+    pub custom10: Box<[Customsec]>,
+    pub datasec: Option<Datasec>,
+    pub custom11: Box<[Customsec]>,
+    pub datacountsec: Option<Datacountsec>,
+    pub custom12: Box<[Customsec]>,
+}
+
+impl Grammar for Module {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        write_all!(
+            w,
+            Magic,
+            Version,
+            self.custom0,
+            self.typesec,
+            self.custom1,
+            self.importsec,
+            self.custom2,
+            self.funcsec,
+            self.custom3,
+            self.tablesec,
+            self.custom4,
+            self.memsec,
+            self.custom5,
+            self.globalsec,
+            self.custom6,
+            self.exportsec,
+            self.custom7,
+            self.startsec,
+            self.custom8,
+            self.elemsec,
+            self.custom9,
+            self.codesec,
+            self.custom10,
+            self.datasec,
+            self.custom11,
+            self.datacountsec,
+            self.custom12
+        )
+    }
+}

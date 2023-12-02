@@ -50,3 +50,24 @@ where
         self.as_ref().write(w)
     }
 }
+
+impl<T, const N: usize> Grammar for [T; N]
+where
+    T: Grammar,
+{
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        self.as_ref().write(w)
+    }
+}
+
+impl<T> Grammar for Option<T>
+where
+    T: Grammar,
+{
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        match self {
+            Some(s) => s.write(w),
+            None => Ok(()),
+        }
+    }
+}
