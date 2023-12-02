@@ -1,7 +1,4 @@
-use std::{
-    io::{self, Write},
-    process::id,
-};
+use std::io::{self, Write};
 
 use crate::{
     modules::{Dataidx, Elemidx, Funcidx, Globalidx, Labelidx, Localidx, Tableidx, Typeidx},
@@ -40,7 +37,28 @@ impl Grammar for Memarg {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Laneidx(pub u8);
+
+impl Grammar for Laneidx {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        self.0.write(w)
+    }
+}
+
+pub struct Expr(pub Box<[Instr]>);
+
+impl Grammar for Expr {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        self.0
+            .iter()
+            .map(|i| i.write(w))
+            .collect::<io::Result<()>>()?;
+        0x0bu8.write(w)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Instr {
     // Control
     Unreachable,
@@ -248,6 +266,49 @@ pub enum Instr {
     I64TruncSatF32U,
     I64TruncSatF64S,
     I64TruncSatF64U,
+    // Vector
+    V128Load(Memarg),
+    V128Load8x8S(Memarg),
+    V128Load8x8U(Memarg),
+    V128Load16x4S(Memarg),
+    V128Load16x4U(Memarg),
+    V128Load32x2S(Memarg),
+    V128Load32x2U(Memarg),
+    V128Load8Splat(Memarg),
+    V128Load16Splat(Memarg),
+    V128Load32Splat(Memarg),
+    V128Load64Splat(Memarg),
+    V128Load32Zero(Memarg),
+    V128Load64Zero(Memarg),
+    V128Store(Memarg),
+    V128Load8Lane(Memarg, Laneidx),
+    V128Load16Lane(Memarg, Laneidx),
+    V128Load32Lane(Memarg, Laneidx),
+    V128Load64Lane(Memarg, Laneidx),
+    V128Store8Lane(Memarg, Laneidx),
+    V128Store16Lane(Memarg, Laneidx),
+    V128Store32Lane(Memarg, Laneidx),
+    V128Store64Lane(Memarg, Laneidx),
+    //
+    V128Const([u8; 16]),
+    //
+    I8x16Shuffle([Laneidx; 16]),
+    //
+    I8x16ExtractLaneS(Laneidx),
+    I8x16ExtractLaneU(Laneidx),
+    I8x16ReplaceLane(Laneidx),
+    I16x8ExtractLaneS(Laneidx),
+    I16x8ExtractLaneU(Laneidx),
+    I16x8ReplaceLane(Laneidx),
+    I32x4ExtractLane(Laneidx),
+    I32x4ReplaceLane(Laneidx),
+    I64x2ExtractLane(Laneidx),
+    I64x2ReplaceLane(Laneidx),
+    F32x4ExtractLane(Laneidx),
+    F32x4ReplaceLane(Laneidx),
+    F64x2ExtractLane(Laneidx),
+    F64x2ReplaceLane(Laneidx),
+    VectorNoImmediate(VectorNoImmediate),
 }
 
 impl Grammar for Instr {
@@ -259,27 +320,36 @@ impl Grammar for Instr {
             Instr::Block(bt, instructions) => {
                 0x02u8.write(w)?;
                 bt.write(w)?;
-                instructions.iter().map(|i| i.write(w)).collect()?;
+                instructions
+                    .iter()
+                    .map(|i| i.write(w))
+                    .collect::<io::Result<()>>()?;
                 0x0bu8.write(w)
             }
             Instr::Loop(bt, instructions) => {
                 0x03u8.write(w)?;
                 bt.write(w)?;
-                instructions.iter().map(|i| i.write(w)).collect()?;
+                instructions
+                    .iter()
+                    .map(|i| i.write(w))
+                    .collect::<io::Result<()>>()?;
                 0x0bu8.write(w)
             }
             Instr::If(bt, instructions) => {
                 0x04u8.write(w)?;
                 bt.write(w)?;
-                instructions.iter().map(|i| i.write(w)).collect()?;
+                instructions
+                    .iter()
+                    .map(|i| i.write(w))
+                    .collect::<io::Result<()>>()?;
                 0x0bu8.write(w)
             }
             Instr::IfElse(bt, in1, in2) => {
                 0x04u8.write(w)?;
                 bt.write(w)?;
-                in1.iter().map(|i| i.write(w)).collect()?;
+                in1.iter().map(|i| i.write(w)).collect::<io::Result<()>>()?;
                 0x05u8.write(w)?;
-                in2.iter().map(|i| i.write(w)).collect()?;
+                in2.iter().map(|i| i.write(w)).collect::<io::Result<()>>()?;
                 0x0bu8.write(w)
             }
             Instr::Br(l) => {
@@ -308,7 +378,7 @@ impl Grammar for Instr {
 
             // Reference
             Instr::RefNull(t) => {
-                0xd0u8.write(w);
+                0xd0u8.write(w)?;
                 t.write(w)
             }
             Instr::RefIsNull => 0xd1u8.write(w),
@@ -653,37 +723,465 @@ impl Grammar for Instr {
             Instr::I64Extend16S => 0xc3u8.write(w),
             Instr::I64Extend32S => 0xc4u8.write(w),
             Instr::I32TruncSatF32S => {
-                0xfcu8.write(w);
+                0xfcu8.write(w)?;
                 0u32.write(w)
             }
             Instr::I32TruncSatF32U => {
-                0xfcu8.write(w);
+                0xfcu8.write(w)?;
                 1u32.write(w)
             }
             Instr::I32TruncSatF64S => {
-                0xfcu8.write(w);
+                0xfcu8.write(w)?;
                 2u32.write(w)
             }
             Instr::I32TruncSatF64U => {
-                0xfcu8.write(w);
+                0xfcu8.write(w)?;
                 3u32.write(w)
             }
             Instr::I64TruncSatF32S => {
-                0xfcu8.write(w);
+                0xfcu8.write(w)?;
                 4u32.write(w)
             }
             Instr::I64TruncSatF32U => {
-                0xfcu8.write(w);
+                0xfcu8.write(w)?;
                 5u32.write(w)
             }
             Instr::I64TruncSatF64S => {
-                0xfcu8.write(w);
+                0xfcu8.write(w)?;
                 6u32.write(w)
             }
             Instr::I64TruncSatF64U => {
-                0xfcu8.write(w);
+                0xfcu8.write(w)?;
                 7u32.write(w)
             }
+
+            // Vector
+            Instr::V128Load(m) => {
+                0xfdu8.write(w)?;
+                0u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load8x8S(m) => {
+                0xfdu8.write(w)?;
+                1u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load8x8U(m) => {
+                0xfdu8.write(w)?;
+                2u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load16x4S(m) => {
+                0xfdu8.write(w)?;
+                3u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load16x4U(m) => {
+                0xfdu8.write(w)?;
+                4u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load32x2S(m) => {
+                0xfdu8.write(w)?;
+                5u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load32x2U(m) => {
+                0xfdu8.write(w)?;
+                6u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load8Splat(m) => {
+                0xfdu8.write(w)?;
+                7u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load16Splat(m) => {
+                0xfdu8.write(w)?;
+                8u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load32Splat(m) => {
+                0xfdu8.write(w)?;
+                9u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load64Splat(m) => {
+                0xfdu8.write(w)?;
+                10u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load32Zero(m) => {
+                0xfdu8.write(w)?;
+                92u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load64Zero(m) => {
+                0xfdu8.write(w)?;
+                93u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Store(m) => {
+                0xfdu8.write(w)?;
+                11u32.write(w)?;
+                m.write(w)
+            }
+            Instr::V128Load8Lane(m, l) => {
+                0xfdu8.write(w)?;
+                84u32.write(w)?;
+                m.write(w)?;
+                l.write(w)
+            }
+            Instr::V128Load16Lane(m, l) => {
+                0xfdu8.write(w)?;
+                85u32.write(w)?;
+                m.write(w)?;
+                l.write(w)
+            }
+            Instr::V128Load32Lane(m, l) => {
+                0xfdu8.write(w)?;
+                86u32.write(w)?;
+                m.write(w)?;
+                l.write(w)
+            }
+            Instr::V128Load64Lane(m, l) => {
+                0xfdu8.write(w)?;
+                87u32.write(w)?;
+                m.write(w)?;
+                l.write(w)
+            }
+            Instr::V128Store8Lane(m, l) => {
+                0xfdu8.write(w)?;
+                88u32.write(w)?;
+                m.write(w)?;
+                l.write(w)
+            }
+            Instr::V128Store16Lane(m, l) => {
+                0xfdu8.write(w)?;
+                89u32.write(w)?;
+                m.write(w)?;
+                l.write(w)
+            }
+            Instr::V128Store32Lane(m, l) => {
+                0xfdu8.write(w)?;
+                90u32.write(w)?;
+                m.write(w)?;
+                l.write(w)
+            }
+            Instr::V128Store64Lane(m, l) => {
+                0xfdu8.write(w)?;
+                91u32.write(w)?;
+                m.write(w)?;
+                l.write(w)
+            }
+            Instr::V128Const(b) => {
+                0xfdu8.write(w)?;
+                12u32.write(w)?;
+                b.iter().map(|b| b.write(w)).collect()
+            }
+            Instr::I8x16Shuffle(l) => {
+                0xfdu8.write(w)?;
+                13u32.write(w)?;
+                l.iter().map(|l| l.write(w)).collect()
+            }
+            Instr::I8x16ExtractLaneS(l) => {
+                0xfdu8.write(w)?;
+                21u32.write(w)?;
+                l.write(w)
+            }
+            Instr::I8x16ExtractLaneU(l) => {
+                0xfdu8.write(w)?;
+                22u32.write(w)?;
+                l.write(w)
+            }
+            Instr::I8x16ReplaceLane(l) => {
+                0xfdu8.write(w)?;
+                23u32.write(w)?;
+                l.write(w)
+            }
+            Instr::I16x8ExtractLaneS(l) => {
+                0xfdu8.write(w)?;
+                24u32.write(w)?;
+                l.write(w)
+            }
+            Instr::I16x8ExtractLaneU(l) => {
+                0xfdu8.write(w)?;
+                25u32.write(w)?;
+                l.write(w)
+            }
+            Instr::I16x8ReplaceLane(l) => {
+                0xfdu8.write(w)?;
+                26u32.write(w)?;
+                l.write(w)
+            }
+            Instr::I32x4ExtractLane(l) => {
+                0xfdu8.write(w)?;
+                27u32.write(w)?;
+                l.write(w)
+            }
+            Instr::I32x4ReplaceLane(l) => {
+                0xfdu8.write(w)?;
+                28u32.write(w)?;
+                l.write(w)
+            }
+            Instr::I64x2ExtractLane(l) => {
+                0xfdu8.write(w)?;
+                29u32.write(w)?;
+                l.write(w)
+            }
+            Instr::I64x2ReplaceLane(l) => {
+                0xfdu8.write(w)?;
+                30u32.write(w)?;
+                l.write(w)
+            }
+            Instr::F32x4ExtractLane(l) => {
+                0xfdu8.write(w)?;
+                31u32.write(w)?;
+                l.write(w)
+            }
+            Instr::F32x4ReplaceLane(l) => {
+                0xfdu8.write(w)?;
+                32u32.write(w)?;
+                l.write(w)
+            }
+            Instr::F64x2ExtractLane(l) => {
+                0xfdu8.write(w)?;
+                33u32.write(w)?;
+                l.write(w)
+            }
+            Instr::F64x2ReplaceLane(l) => {
+                0xfdu8.write(w)?;
+                34u32.write(w)?;
+                l.write(w)
+            }
+            Instr::VectorNoImmediate(i) => i.write(w),
         }
+    }
+}
+
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum VectorNoImmediate {
+    //
+    I8x16Swizzle = 14,
+    I8x16Splat,
+    I16x8Splat,
+    I32x4Splat,
+    I64x2Splat,
+    F32x4Splat,
+    F64x2Splat,
+    //
+    I8x16Eq = 35,
+    I8x16Ne,
+    I8x16LtS,
+    I8x16LtU,
+    I8x16GtS,
+    I8x16GtU,
+    I8x16LeS,
+    I8x16LeU,
+    I8x16GeS,
+    I8x16GeU,
+    //
+    I16x8Eq = 45,
+    I16x8Ne,
+    I16x8LtS,
+    I16x8LtU,
+    I16x8GtS,
+    I16x8GtU,
+    I16x8LeS,
+    I16x8LeU,
+    I16x8GeS,
+    I16x8GeU,
+    //
+    I32x4Eq = 55,
+    I32x4Ne,
+    I32x4LtS,
+    I32x4LtU,
+    I32x4GtS,
+    I32x4GtU,
+    I32x4LeS,
+    I32x4LeU,
+    I32x4GeS,
+    I32x4GeU,
+    //
+    I64x2Eq = 214,
+    I64x2Ne,
+    I64x2LtS,
+    I64x2GtS,
+    I64x2LeS,
+    I64x2GeS,
+    //
+    F32x4Eq = 65,
+    F32x4Ne,
+    F32x4LtS,
+    F32x4GtS,
+    F32x4LeS,
+    F32x4GeS,
+    //
+    F64x2Eq = 71,
+    F64x2Ne,
+    F64x2LtS,
+    F64x2GtS,
+    F64x2LeS,
+    F64x2GeS,
+    //
+    V128Not = 77,
+    V128And,
+    V128AndNot,
+    V128Or,
+    V128Xor,
+    V128Bitselect,
+    V128AnyTrue,
+    //
+    I8x16Abs = 96,
+    I8x16Neg,
+    I8x16Popcnt,
+    I8x16AllTrue,
+    I8x16Bitmask,
+    I8x16NarrowI16x8S,
+    I8x16NarrowI16x8U,
+    I8x16Shl = 107,
+    I8x16ShrS,
+    I8x16ShrU,
+    I8x16Add,
+    I8x16AddSatS,
+    I8x16AddSatU,
+    I8x16Sub,
+    I8x16SubSatS,
+    I8x16SubSatU,
+    I8x16MinS = 118,
+    I8x16MinU,
+    I8x16MaxS,
+    I8x16MaxU,
+    I8x16AvgrU = 123,
+    //
+    I16x8ExtaddPairwise = 124,
+    I16x8Abs,
+    I16x8Neg = 128,
+    I16x8Q15MulrSatS,
+    I16x8AllTrue,
+    I16x8Bitmask,
+    I16x8NarrowI32x4S,
+    I16x8NarrowI32x4U,
+    I16x8ExtendLowI8x16S,
+    I16x8ExtendHighI8x16S,
+    I16x8ExtendLowI8x16U,
+    I16x8ExtendHighI8x16U,
+    I16x8Shl,
+    I16x8ShrS,
+    I16x8ShrU,
+    I16x8Add,
+    I16x8AddSatS,
+    I16x8AddSatU,
+    I16x8Sub,
+    I16x8SubSatS,
+    I16x8SubSatU,
+    I16x8Mul = 149,
+    I16x8MinS,
+    I16x8MinU,
+    I16x8MaxS,
+    I16x8MaxU,
+    I16x8AvgrU = 155,
+    I16x8ExtmulLowI8x16S,
+    I16x8ExtmulHighI8x16S,
+    I16x8ExtmulLowI8x16U,
+    I16x8ExtmulHighI8x16U,
+    //
+    I32x4ExtaddPairwiseS = 126,
+    I32x4ExtaddPairwiseU,
+    I32x4Abs = 160,
+    I32x4Neg,
+    I32x4Q15MulrSatS,
+    I32x4AllTrue = 163,
+    I32x4Bitmask,
+    I32x4ExtendLowI8x16S = 167,
+    I32x4ExtendHighI8x16S,
+    I32x4ExtendLowI8x16U,
+    I32x4ExtendHighI8x16U,
+    I32x4Shl,
+    I32x4ShrS,
+    I32x4ShrU,
+    I32x4Add,
+    I32x4AddSatS,
+    I32x4AddSatU,
+    I32x4Sub = 177,
+    I32x4Mul,
+    I32x4MinS,
+    I32x4MinU,
+    I32x4MaxS,
+    I32x4MaxU,
+    I32x4AvgrU,
+    I32x4ExtmulLowI8x16S = 188,
+    I32x4ExtmulHighI8x16S,
+    I32x4ExtmulLowI8x16U,
+    I32x4ExtmulHighI8x16U,
+    //
+    I64x2Abs = 192,
+    I64x2Neg,
+    I64x2AllTrue = 195,
+    I64x2Bitmask,
+    I64x2ExtendLowI32x4S = 199,
+    I64x2ExtendHighI32x4S,
+    I64x2ExtendLowI32x4U,
+    I64x2ExtendHighI32x4U,
+    I64x2Shl,
+    I64x2ShrS,
+    I64x2ShrU,
+    I64x2Add,
+    I64x2Sub = 209,
+    I64x2Mul = 213,
+    I64x2ExtlowLowI32x4S = 220,
+    I64x2ExtlowHighI32x4S,
+    I64x2ExtlowLowI32x4U,
+    I64x2ExtlowHighI32x4U,
+    //
+    F32x4Ceil = 103,
+    F32x4Floor,
+    F32x4Trunc,
+    F32x4Nearest,
+    F32x4Abs = 224,
+    F32x4Neg,
+    F32x4Sqrt,
+    F32x4Add,
+    F32x4Sub,
+    F32x4Mul,
+    F32x4Div,
+    F32x4Min,
+    F32x4Max,
+    F32x4Pmin,
+    F32x4Pmax,
+    //
+    F64x2Ceil = 116,
+    F64x2Floor,
+    F64x2Trunc = 122,
+    F64x2Nearest = 148,
+    F64x2Abs = 236,
+    F64x2Neg,
+    F64x2Sqrt = 239,
+    F64x2Add,
+    F64x2Sub,
+    F64x2Mul,
+    F64x2Div,
+    F64x2Min,
+    F64x2Max,
+    F64x2Pmin,
+    F64x2Pmax,
+    //
+    I32x4TruncSatF32x4S = 248,
+    I32x4TruncSatF32x4U,
+    F32x4ConvertI32x4S,
+    F32x4ConvertI32x4U,
+    I32x4TruncSatF64x2SZero,
+    I32x4TruncSatF64x2UZero,
+    F64x2ConvertLowI32x4S,
+    F64x2ConvertLowI32x4U,
+    F32x4DemoteF64x2Zero = 94,
+    F64x2PromoteLowF32x4,
+}
+
+impl Grammar for VectorNoImmediate {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        0xfdu8.write(w)?;
+        (*self as u32).write(w)
     }
 }

@@ -59,7 +59,7 @@ impl Grammar for Valtype {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Resulttype(pub Vector<Valtype>);
 
 impl Grammar for Resulttype {
@@ -68,7 +68,7 @@ impl Grammar for Resulttype {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Functype {
     pub parameters: Resulttype,
     pub results: Resulttype,

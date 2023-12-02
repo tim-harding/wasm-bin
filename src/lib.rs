@@ -10,7 +10,7 @@ pub trait Grammar {
 }
 
 // https://webassembly.github.io/spec/core/binary/conventions.html#vectors
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Vector<T>(pub Box<[T]>);
 
 impl<T> Grammar for Vector<T>
