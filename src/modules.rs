@@ -1,6 +1,6 @@
 use crate::{
     instructions::Expr,
-    types::{Functype, Globaltype, Memtype, Tabletype},
+    types::{Functype, Globaltype, Memtype, Reftype, Tabletype},
     values::Name,
     write_all, Grammar, Vector,
 };
@@ -172,6 +172,42 @@ impl Grammar for Start {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Elemkind;
+
+impl Grammar for Elemkind {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        0x00u8.write(w)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub enum Elem {
+    FuncrefFuncActive(Expr, Vector<Funcidx>),
+    ElemkindFuncPassive(Elemkind, Vector<Funcidx>),
+    ElemkindFuncActive(Tableidx, Expr, Elemkind, Vector<Funcidx>),
+    ElemkindFuncDeclarative(Elemkind, Vector<Funcidx>),
+    FuncrefExprActive(Expr, Vector<Expr>),
+    ReftypeExprPassive(Reftype, Vector<Expr>),
+    ReftypeExprActive(Tableidx, Expr, Reftype, Vector<Expr>),
+    ReftypeExprDeclarative(Reftype, Vector<Expr>),
+}
+
+impl Grammar for Elem {
+    fn write<W: Write>(&self, w: &mut W) -> io::Result<()> {
+        match self {
+            Elem::FuncrefFuncActive(e, y) => write_all!(w, 0u32, e, y),
+            Elem::ElemkindFuncPassive(et, y) => write_all!(w, 1u32, et, y),
+            Elem::ElemkindFuncActive(x, e, et, y) => write_all!(w, 2u32, x, e, et, y),
+            Elem::ElemkindFuncDeclarative(et, y) => write_all!(w, 3u32, et, y),
+            Elem::FuncrefExprActive(e, el) => write_all!(w, 4u32, e, el),
+            Elem::ReftypeExprPassive(et, el) => write_all!(w, 5u32, et, el),
+            Elem::ReftypeExprActive(x, e, et, el) => write_all!(w, 6u32, x, e, et, el),
+            Elem::ReftypeExprDeclarative(et, el) => write_all!(w, 7u32, et, el),
+        }
+    }
+}
+
 section!(Customsec, 0, Custom);
 section!(Typesec, 1, Vector<Functype>);
 section!(Importsec, 2, Vector<Import>);
@@ -181,3 +217,4 @@ section!(Memsec, 5, Vector<Mem>);
 section!(Globalsec, 6, Vector<Global>);
 section!(Exportsec, 7, Vector<Export>);
 section!(Startsec, 8, Start);
+section!(Elemsec, 9, Vector<Elem>);
