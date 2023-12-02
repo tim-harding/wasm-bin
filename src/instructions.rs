@@ -267,34 +267,13 @@ pub enum Instr {
     I64TruncSatF64S,
     I64TruncSatF64U,
     // Vector
-    V128Load(Memarg),
-    V128Load8x8S(Memarg),
-    V128Load8x8U(Memarg),
-    V128Load16x4S(Memarg),
-    V128Load16x4U(Memarg),
-    V128Load32x2S(Memarg),
-    V128Load32x2U(Memarg),
-    V128Load8Splat(Memarg),
-    V128Load16Splat(Memarg),
-    V128Load32Splat(Memarg),
-    V128Load64Splat(Memarg),
-    V128Load32Zero(Memarg),
-    V128Load64Zero(Memarg),
-    V128Store(Memarg),
-    V128Load8Lane(Memarg, Laneidx),
-    V128Load16Lane(Memarg, Laneidx),
-    V128Load32Lane(Memarg, Laneidx),
-    V128Load64Lane(Memarg, Laneidx),
-    V128Store8Lane(Memarg, Laneidx),
-    V128Store16Lane(Memarg, Laneidx),
-    V128Store32Lane(Memarg, Laneidx),
-    V128Store64Lane(Memarg, Laneidx),
     //
     V128Const([u8; 16]),
     //
     I8x16Shuffle([Laneidx; 16]),
-    //
-    VectorLaneIndex(VectorLaneIndex, Laneidx),
+    VectorMemarg(VectorMemarg, Memarg),
+    VectorMemargLaneidx(VectorMemargLaneidx, Memarg, Laneidx),
+    VectorLaneidx(VectorMemarg, Laneidx),
     VectorNoImmediate(VectorNoImmediate),
 }
 
@@ -743,121 +722,14 @@ impl Grammar for Instr {
             }
 
             // Vector
-            Instr::V128Load(m) => {
+            Instr::VectorMemarg(opcode, m) => {
                 0xfdu8.write(w)?;
-                0u32.write(w)?;
+                (*opcode as u32).write(w)?;
                 m.write(w)
             }
-            Instr::V128Load8x8S(m) => {
+            Instr::VectorMemargLaneidx(opcode, m, l) => {
                 0xfdu8.write(w)?;
-                1u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load8x8U(m) => {
-                0xfdu8.write(w)?;
-                2u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load16x4S(m) => {
-                0xfdu8.write(w)?;
-                3u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load16x4U(m) => {
-                0xfdu8.write(w)?;
-                4u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load32x2S(m) => {
-                0xfdu8.write(w)?;
-                5u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load32x2U(m) => {
-                0xfdu8.write(w)?;
-                6u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load8Splat(m) => {
-                0xfdu8.write(w)?;
-                7u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load16Splat(m) => {
-                0xfdu8.write(w)?;
-                8u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load32Splat(m) => {
-                0xfdu8.write(w)?;
-                9u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load64Splat(m) => {
-                0xfdu8.write(w)?;
-                10u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load32Zero(m) => {
-                0xfdu8.write(w)?;
-                92u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load64Zero(m) => {
-                0xfdu8.write(w)?;
-                93u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Store(m) => {
-                0xfdu8.write(w)?;
-                11u32.write(w)?;
-                m.write(w)
-            }
-            Instr::V128Load8Lane(m, l) => {
-                0xfdu8.write(w)?;
-                84u32.write(w)?;
-                m.write(w)?;
-                l.write(w)
-            }
-            Instr::V128Load16Lane(m, l) => {
-                0xfdu8.write(w)?;
-                85u32.write(w)?;
-                m.write(w)?;
-                l.write(w)
-            }
-            Instr::V128Load32Lane(m, l) => {
-                0xfdu8.write(w)?;
-                86u32.write(w)?;
-                m.write(w)?;
-                l.write(w)
-            }
-            Instr::V128Load64Lane(m, l) => {
-                0xfdu8.write(w)?;
-                87u32.write(w)?;
-                m.write(w)?;
-                l.write(w)
-            }
-            Instr::V128Store8Lane(m, l) => {
-                0xfdu8.write(w)?;
-                88u32.write(w)?;
-                m.write(w)?;
-                l.write(w)
-            }
-            Instr::V128Store16Lane(m, l) => {
-                0xfdu8.write(w)?;
-                89u32.write(w)?;
-                m.write(w)?;
-                l.write(w)
-            }
-            Instr::V128Store32Lane(m, l) => {
-                0xfdu8.write(w)?;
-                90u32.write(w)?;
-                m.write(w)?;
-                l.write(w)
-            }
-            Instr::V128Store64Lane(m, l) => {
-                0xfdu8.write(w)?;
-                91u32.write(w)?;
+                (*opcode as u32).write(w)?;
                 m.write(w)?;
                 l.write(w)
             }
@@ -871,7 +743,7 @@ impl Grammar for Instr {
                 13u32.write(w)?;
                 l.iter().map(|l| l.write(w)).collect()
             }
-            Instr::VectorLaneIndex(opcode, lane) => {
+            Instr::VectorLaneidx(opcode, lane) => {
                 0xfdu8.write(w)?;
                 (*opcode as u32).write(w)?;
                 lane.write(w)
@@ -886,7 +758,39 @@ impl Grammar for Instr {
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum VectorLaneIndex {
+pub enum VectorMemarg {
+    V128Load = 0,
+    V128Load8x8S,
+    V128Load8x8U,
+    V128Load16x4S,
+    V128Load16x4U,
+    V128Load32x2S,
+    V128Load32x2U,
+    V128Load8Splat,
+    V128Load16Splat,
+    V128Load32Splat,
+    V128Load64Splat,
+    V128Load32Zero = 92,
+    V128Load64Zero,
+    V128Store = 11,
+}
+
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum VectorMemargLaneidx {
+    V128Load8Lane = 84,
+    V128Load16Lane,
+    V128Load32Lane,
+    V128Load64Lane,
+    V128Store8Lane,
+    V128Store16Lane,
+    V128Store32Lane,
+    V128Store64Lane,
+}
+
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum VectorLaneidx {
     I8x16ExtractLaneS = 21,
     I8x16ExtractLaneU,
     I8x16ReplaceLane,
